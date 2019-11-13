@@ -2,33 +2,27 @@ const express = require('express');
 const app = express();
 const port = 3000;
 const morgan= require('morgan');
-const validate = require('./query_validator.js');
-const errorHandler = require('./error_handler.js');
-const request = require('http');
+const fetch = require('node-fetch');
+const validate = require('./query_validator');
+const errorHandler = require('./error_handler');
+const parser = require('./foodco_parser')
+const url = 'https://www.fazerfoodco.fi/modules/json/json/Index?costNumber=0083&language=fi';
 
-app.use(morgan('dev '));
+app.use(morgan('dev'));
 
-val = validate.validateQuery();
+app.get('/menus', validate, async (req, res) => {
+    try {
+    const APIresponse = await fetch(url);
+    const data = await APIresponse.json();
+    res.send(parser.parseData(data, req.query.action ));
 
-app.get('/menus', (req, res, val) => {
-    const reqParams = {
-        uri: 'https://www.fazerfoodco.fi/modules/json/json/Index?costNumber=0083&language=fi',
-        method: 'GET'}
-        request(
-            reqParams,
-            (error, response, body) => {
-                console.log('Status:', response.statusCode);
-                console.log('Body:', JSON.parse(body));
-            });
-            
-}, (req, res) => {
-    res.send('Hello from B!')
+    } catch (e) {
+    e.statusCode = 503;
+    next(e);
+    }
+});
 
-    consterr = new Error(`Invalidaction`);
-    err.statusCode= 400;
-    next(err);
-})
-app.use(errorHandler.errorHandler());
+app.use(errorHandler);
 
 
 app.listen(3000, () => 
